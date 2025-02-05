@@ -1,5 +1,7 @@
 package com.github.rfsmassacre.heavenvaults;
 
+import com.github.rfsmassacre.heavenlibrary.interfaces.LocaleData;
+import com.github.rfsmassacre.heavenlibrary.paper.configs.PaperConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Material;
@@ -156,12 +158,7 @@ public class Vault
                         continue;
                     }
 
-                    List<ItemStack> invalidShulkerItems = getInvalid(shulkerItem);
-                    if (!invalidShulkerItems.isEmpty())
-                    {
-                        invalidItems.addAll(invalidShulkerItems);
-                        break;
-                    }
+                    invalidItems.addAll(getInvalid(shulkerItem));
                 }
             }
             else if (item.getItemMeta() instanceof BundleMeta meta)
@@ -173,17 +170,63 @@ public class Vault
                         continue;
                     }
 
-                    List<ItemStack> invalidBundleItems = getInvalid(bundleItem);
-                    if (!invalidBundleItems.isEmpty())
-                    {
-                        invalidItems.addAll(invalidBundleItems);
-                        break;
-                    }
+                    invalidItems.addAll(getInvalid(bundleItem));
                 }
             }
         }
 
         return invalidItems;
+    }
+
+    public static List<ItemStack> removeInvalid(ItemStack item)
+    {
+        List<ItemStack> removedItems = new ArrayList<>();
+        for (String value : HeavenVaults.getInstance().getConfiguration().getStringList("blacklist"))
+        {
+            if (item.getItemMeta() instanceof BlockStateMeta meta && meta.getBlockState() instanceof
+                    ShulkerBox shulker)
+            {
+                for (ItemStack shulkerItem : shulker.getInventory().getContents())
+                {
+                    if (shulkerItem == null || shulkerItem.getType().equals(Material.AIR))
+                    {
+                        continue;
+                    }
+
+                    List<ItemStack> removedShulkerItems = removeInvalid(shulkerItem);
+                    removedItems.addAll(removedShulkerItems);
+                    shulker.getInventory().removeItem(removedShulkerItems.toArray(new ItemStack[0]));
+                }
+
+                meta.setBlockState(shulker);
+                item.setItemMeta(meta);
+            }
+            else if (item.getItemMeta() instanceof BundleMeta meta)
+            {
+                List<ItemStack> bundleItems = new ArrayList<>(meta.getItems());
+                for (ItemStack bundleItem : meta.getItems())
+                {
+                    if (bundleItem == null || bundleItem.getType().equals(Material.AIR))
+                    {
+                        continue;
+                    }
+
+                    List<ItemStack> removedBundleItems = removeInvalid(bundleItem);
+                    removedItems.addAll(removedBundleItems);
+                    bundleItems.removeAll(removedBundleItems);
+                }
+
+                meta.setItems(bundleItems);
+                item.setItemMeta(meta);
+            }
+            else if (item.getType().name().contains(value.toUpperCase()))
+            {
+                removedItems.add(item);
+                break;
+            }
+        }
+
+        return removedItems;
     }
 
     private final UUID playerId;
@@ -212,10 +255,18 @@ public class Vault
         Set<String> removedItems = new HashSet<>();
         for (ItemStack item : new ArrayList<>(items))
         {
-            removedItems.addAll(getInvalid(item).stream()
-                    .filter(Objects::nonNull)
-                    .map((invalidItem) -> item.getType().name())
-                    .toList());
+            List<ItemStack> removedVaultItems = removeInvalid(item);
+            if (removedVaultItems.size() == 1)
+            {
+                removedItems.add(LocaleData.capitalize(removedVaultItems.getFirst().getType().name()));
+                items.removeAll(removedVaultItems);
+            }
+            else
+            {
+                removedItems.addAll(removedVaultItems.stream()
+                        .map((removedItem) -> LocaleData.capitalize(removedItem.getType().name()))
+                        .toList());
+            }
         }
 
         return removedItems;

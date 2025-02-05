@@ -4,6 +4,7 @@ import com.github.rfsmassacre.heavenlibrary.interfaces.LocaleData;
 import com.github.rfsmassacre.heavenlibrary.paper.configs.PaperConfiguration;
 import com.github.rfsmassacre.heavenlibrary.paper.configs.PaperLocale;
 import com.github.rfsmassacre.heavenlibrary.paper.menu.Menu;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,6 +15,10 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class VaultListener implements Listener
 {
@@ -84,20 +89,31 @@ public class VaultListener implements Listener
             return;
         }
 
-        if (!Vault.isValid(item))
-        {
-            locale.sendLocale(player, "blacklisted-item", "{items}",
-                    String.join(", ", Vault.getInvalid(item)
-                            .stream()
-                            .map((invalidItem) -> LocaleData.capitalize(invalidItem.getType().name()))
-                            .toList()));
-            return;
-        }
-
-        vault.getItems().add(item);
         event.setCurrentItem(null);
-        menu.updateIcons(player);
-        menu.updateInventory(player);
-        Vault.saveVault(vault);
+        Bukkit.getScheduler().runTaskAsynchronously(HeavenVaults.getInstance(), () ->
+        {
+            List<ItemStack> blacklistedItems = Vault.getInvalid(item);
+            if (!blacklistedItems.isEmpty())
+            {
+                locale.sendLocale(player, "blacklisted-item", "{items}",
+                        String.join(", ", blacklistedItems.stream()
+                                .map((invalidItem) -> LocaleData.capitalize(invalidItem.getType().name()))
+                                .collect(Collectors.toSet())));
+                Bukkit.getScheduler().scheduleSyncDelayedTask(HeavenVaults.getInstance(), () ->
+                {
+                    event.setCurrentItem(item);
+                });
+            }
+            else
+            {
+                Bukkit.getScheduler().scheduleSyncDelayedTask(HeavenVaults.getInstance(), () ->
+                {
+                    vault.getItems().add(item);
+                    menu.updateIcons(player);
+                    menu.updateInventory(player);
+                    Vault.saveVault(vault);
+                });
+            }
+        });
     }
 }
