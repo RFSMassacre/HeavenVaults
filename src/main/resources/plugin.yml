@@ -1,0 +1,12 @@
+name: HeavenVaults
+version: '1.0-SNAPSHOT'
+main: com.github.rfsmassacre.heavenvaults.HeavenVaults
+api-version: '1.21'
+authors: [ RFSMassacre ]
+depend:
+  - HeavenLibrary
+commands:
+  vaultadmin:
+  playervault:
+    aliases:
+      - pv

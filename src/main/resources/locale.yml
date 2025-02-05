@@ -1,0 +1,9 @@
+prefix: "&b&lVaults &7&l|&r "
+blacklisted-item: "&cYou have blacklisted items! You cannot add &e{items}&c!"
+no-admin-perm: "&cYou do not have permissions to open other player's vaults!"
+no-vault-found: "&f{player}&c does not have a player vault!"
+reloaded: "&aPlugin config files have been reloaded!"
+validate:
+  starting: "&cValidating vaults..."
+  success: "&cBlacklisted items were discovered in &f{player}&c's vault! Removed &e{items}&c!"
+  completed: "&aValidated &f{amount} vaults&a!"
